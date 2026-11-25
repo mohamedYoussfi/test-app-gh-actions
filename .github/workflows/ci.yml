@@ -31,11 +31,11 @@ jobs:
       - name: Démarrer le conteneur
         run: docker run -d --name demo -p 127.0.0.1:8080:8080 "$IMAGE"
 
-      - name: Vérifier GET /hello
+      - name: Vérifier GET /test
         run: |
           for attempt in {1..30}; do
-            if response=$(curl -fsS --max-time 2 http://127.0.0.1:8080/hello 2>/dev/null) &&
-               [[ "$response" == 'Bonjour !' ]]; then
+            if response=$(curl -fsS --max-time 2 http://127.0.0.1:8080/test 2>/dev/null) &&
+               [[ "$response" == 'Hello Mohamed' ]]; then
               echo "Réponse attendue reçue : $response"
               exit 0
             fi
