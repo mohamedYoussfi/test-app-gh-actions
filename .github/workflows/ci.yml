@@ -1,13 +1,19 @@
-name: CI Spring Boot et Docker
+name: CI et déploiement Spring Boot
 
-on: [push]
+on:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: spring-docker-demo-deploy
+  cancel-in-progress: false
+
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  build-test-deploy:
+    runs-on: [self-hosted, linux]
     env:
       IMAGE: spring-docker-demo:${{ github.sha }}
 
@@ -28,8 +34,18 @@ jobs:
       - name: Construire l’image Docker
         run: docker build --tag "$IMAGE" .
 
-      - name: Démarrer le conteneur
-        run: docker run -d --name demo -p 127.0.0.1:8080:8080 "$IMAGE"
+      - name: Déployer le conteneur
+        id: deploy
+        run: |
+          if docker container inspect demo >/dev/null 2>&1; then
+            docker rm -f demo
+          fi
+
+          docker run -d \
+            --name demo \
+            --restart unless-stopped \
+            -p 127.0.0.1:8080:8080 \
+            "$IMAGE"
 
       - name: Vérifier GET /test
         run: |
@@ -41,13 +57,10 @@ jobs:
             fi
             sleep 1
           done
-          echo "::error::GET /hello ne renvoie pas la réponse attendue"
+
+          echo "::error::GET /test ne renvoie pas la réponse attendue"
           exit 1
 
-      - name: Afficher les logs en cas d’échec
-        if: failure()
-        run: docker logs demo || true
-
-      - name: Supprimer le conteneur
-        if: always()
-        run: docker rm -f demo || true
+      - name: Afficher les logs en cas d’échec du déploiement
+        if: ${{ failure() && steps.deploy.outcome != 'skipped' }}
+        run: docker logs --tail 100 demo || true
