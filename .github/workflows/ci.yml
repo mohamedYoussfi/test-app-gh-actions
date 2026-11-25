@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build-test-deploy:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, macOS]
     env:
       IMAGE: spring-docker-demo:${{ github.sha }}
 
